@@ -10,8 +10,9 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix=".", intents=intents)
 
-# OWNER ROLE ID
+# SABİT TANIMLAMALAR
 OWNER_ROLE_ID = 1525636834233680001
+ALLOWED_CHANNEL_ID = 1545829702265082108  # Sadece komutların çalışacağı kanal ID'si
 
 # Veri Depolama (Bellek içi)
 user_balances = defaultdict(int)
@@ -38,6 +39,23 @@ def catch_fish():
     return selected[0], selected[2]
 
 
+# Kanal Kontrolü Fonksiyonu (.yardım HARİÇ)
+@bot.check
+async def check_channel(ctx):
+    # .yardım komutunun her yerde çalışmasına izin ver
+    if ctx.command and ctx.command.name == "yardım":
+        return True
+
+    # Diğer tüm komutlar sadece belirtilen kanalda çalışabilir
+    if ctx.channel.id == ALLOWED_CHANNEL_ID:
+        return True
+
+    await ctx.send(
+        "❌ **Hata:** Bu komutu sadece belirlenmiş kanalda kullanabilirsiniz!"
+    )
+    return False
+
+
 @bot.event
 async def on_ready():
     print(f"{bot.user} olarak giriş yapıldı!")
@@ -51,6 +69,8 @@ async def on_command_error(ctx, error):
         await ctx.send(
             f"❌ hata bu komutu kullanmak için {seconds} saniye beklemeniz gerekiyor."
         )
+    elif isinstance(error, commands.CheckFailure):
+        pass  # Kanal uyarısı check_channel içinde verildiği için ekstra hata basmaz
     else:
         raise error
 
@@ -237,7 +257,7 @@ async def yemçıkart(ctx):
     await ctx.send("✅ Yem başarıyla çıkartıldı.")
 
 
-# .yardım Komutu
+# .yardım Komutu (Her kanalda çalışır)
 @bot.command()
 async def yardım(ctx):
     embed = discord.Embed(
