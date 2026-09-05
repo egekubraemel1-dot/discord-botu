@@ -32,7 +32,6 @@ FISH_PRICES = {
 }
 
 # Şans Oranları (Balık Adı, Oran)
-# 1. Varsayılan (Normal)
 BASE_RATES = [
     ("hamsi", 90.0),
     ("çupra", 25.0),
@@ -45,7 +44,6 @@ BASE_RATES = [
     ("megaladon", 0.5),
 ]
 
-# 2. Altın Yem Takılıyken
 YEM_RATES = [
     ("hamsi", 89.0),
     ("çupra", 26.0),
@@ -58,7 +56,6 @@ YEM_RATES = [
     ("megaladon", 0.51),
 ]
 
-# 3. Süper Olta Takılıyken
 OLTA_RATES = [
     ("hamsi", 85.0),
     ("çupra", 30.0),
@@ -75,7 +72,6 @@ OLTA_RATES = [
 def catch_fish(user_id):
     equipped = user_equipped[user_id]
 
-    # Ekipmana göre şans tablosunu belirleme
     if equipped["olta"] == "Süper Olta":
         active_rates = OLTA_RATES
     elif equipped["yem"] == "Altın Yem":
@@ -92,7 +88,22 @@ def catch_fish(user_id):
 
 @bot.event
 async def on_ready():
+    await bot.change_presence(
+        activity=discord.CustomActivity(name="discord.gg/apexis 🎣")
+    )
     print(f"{bot.user} olarak giriş yapıldı!")
+
+
+# Otomatik Selamlama ve Dinleme Eventi
+@bot.event
+async def on_message(message):
+    if message.author.bot:
+        return
+
+    if message.content.lower() == "sa":
+        await message.channel.send("Aleyküm Selam Hoşgeldin.")
+
+    await bot.process_commands(message)
 
 
 # Custom Cooldown Hata Mesajı
@@ -101,29 +112,28 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
         seconds = round(error.retry_after)
         await ctx.send(
-            f"❌ hata bu komutu kullanmak için {seconds} saniye beklemeniz gerekiyor."
+            f"**❌ | Bu komutu tekrar kullanabilmek için {seconds} saniye beklemeniz gerekmektedir.**"
         )
     else:
         raise error
 
 
-# .fish Komutu
+# .fish Komutu (Mesaj Güncelleme Özellikli)
 @bot.command()
 @commands.cooldown(1, 10, commands.BucketType.user)
 async def fish(ctx):
-    await ctx.send("🎣 balık tutuluyor...")
+    msg = await ctx.send("**🎣 | Balık tutuluyor...**")
     await asyncio.sleep(5)
 
     user_id = ctx.author.id
     fish_name = catch_fish(user_id)
 
-    # Sadece envantere eklenir, bakiye eklenmez
     user_inventories[user_id][fish_name] += 1
 
-    await ctx.send(f"🪣 kovanıza {fish_name} eklendi.")
+    await msg.edit(content=f"**🪣 | Kovanıza {fish_name} eklendi.**")
 
 
-# .sat Komutu (Envanterdeki tüm balıkları satma)
+# .sat Komutu
 @bot.command()
 async def sat(ctx):
     user_id = ctx.author.id
@@ -137,20 +147,19 @@ async def sat(ctx):
         if count > 0:
             total_earnings += count * price
             sold_count += count
-            inv[fish_name] = 0  # Envanterdeki balığı sıfırla
+            inv[fish_name] = 0
 
     if sold_count == 0:
-        await ctx.send("❌ Envanterinizde satılacak balık bulunmuyor!")
+        await ctx.send(
+            "**❌ | Envanterinde Henüz Balık Yok .fish Yazarak Balık Tutmaya Başla.**"
+        )
         return
 
     user_balances[user_id] += total_earnings
 
-    embed = discord.Embed(
-        title="🐟 Balık Satışı Yapıldı!",
-        description=f"Toplam **{sold_count}** adet balık satıldı.\nKazanılan Bakiye: **+{total_earnings}** 💰\nMevcut Bakiye: **{user_balances[user_id]}** 💰",
-        color=discord.Color.green(),
+    await ctx.send(
+        f"**✅ | Başarılı Bir Şekilde Envanterinde Bulunan Balıklar Satıldı. Yeni Bakiyen {user_balances[user_id]} Olmuştur.**"
     )
-    await ctx.send(embed=embed)
 
 
 # .bakiye Komutu
@@ -160,8 +169,8 @@ async def bakiye(ctx, member: discord.Member = None):
     bal = user_balances[target.id]
 
     embed = discord.Embed(
-        title="💰 Bakiye Bilgisi",
-        description=f"**{target.mention}** kullanıcısının toplam bakiyesi: **{bal}** bakiye",
+        title="**💰 Bakiye Bilgisi**",
+        description=f"**{target.mention} kullanıcısının mevcut bakiyesi:** **{bal}**",
         color=discord.Color.gold(),
     )
     await ctx.send(embed=embed)
@@ -175,33 +184,33 @@ async def envanter(ctx):
     equipped = user_equipped[user_id]
 
     embed = discord.Embed(
-        title=f"{ctx.author.display_name} kullanıcısının envanteri 🎒",
+        title=f"**🎒 {ctx.author.display_name} Envanteri**",
         color=discord.Color.blue(),
     )
 
     fish_lines = []
     for name in FISH_PRICES.keys():
         count = inv[name]
-        fish_lines.append(f"• **{name}**: {count}")
+        fish_lines.append(f"• **{name}**: **{count}**")
 
     embed.add_field(
-        name="🐟 Balıklar", value="\n".join(fish_lines), inline=False
+        name="**🐟 Balıklar**", value="\n".join(fish_lines), inline=False
     )
 
     items_lines = [
-        f"• **Süper Olta**: {inv['super_olta']}",
-        f"• **Altın Yem**: {inv['altin_yem']}",
+        f"• **Süper Olta**: **{inv['super_olta']}**",
+        f"• **Altın Yem**: **{inv['altin_yem']}**",
     ]
     embed.add_field(
-        name="🎒 Eşyalar", value="\n".join(items_lines), inline=False
+        name="**🎒 Eşyalar**", value="\n".join(items_lines), inline=False
     )
 
     active_lines = [
-        f"• **Aktif Olta**: {equipped['olta'] or 'Yok'}",
-        f"• **Aktif Yem**: {equipped['yem'] or 'Yok'}",
+        f"• **Aktif Olta**: **{equipped['olta'] or 'Yok'}**",
+        f"• **Aktif Yem**: **{equipped['yem'] or 'Yok'}**",
     ]
     embed.add_field(
-        name="⚙️ Takılı Ekipmanlar",
+        name="**⚙️ Takılı Ekipmanlar**",
         value="\n".join(active_lines),
         inline=False,
     )
@@ -214,13 +223,32 @@ async def envanter(ctx):
 async def bakiyeekle(ctx, member: discord.Member, miktar: int):
     has_role = any(role.id == OWNER_ROLE_ID for role in ctx.author.roles)
     if not has_role:
-        await ctx.send("❌ hata bu komutu sadece ownerler kullanabilir.")
+        await ctx.send(
+            "**❌ | Bu komutu kullanmak için gerekli yetkiye sahip değilsiniz.**"
+        )
         return
 
     user_balances[member.id] += miktar
     yeni_bakiye = user_balances[member.id]
     await ctx.send(
-        f"{member.mention} kullanıcısına {miktar} bakiye eklendi şu anda mevcut bakiyesi :\n{yeni_bakiye}"
+        f"**✅ | Başarılı Bir Şekilde {member.mention} Kullanıcısına {miktar} Bakiye Eklendi. Yeni Bakiyesi: {yeni_bakiye}**"
+    )
+
+
+# .bakiyesil Komutu
+@bot.command()
+async def bakiyesil(ctx, member: discord.Member, miktar: int):
+    has_role = any(role.id == OWNER_ROLE_ID for role in ctx.author.roles)
+    if not has_role:
+        await ctx.send(
+            "**❌ | Bu komutu kullanmak için gerekli yetkiye sahip değilsiniz.**"
+        )
+        return
+
+    user_balances[member.id] -= miktar
+    yeni_bakiye = user_balances[member.id]
+    await ctx.send(
+        f"**✅ | Başarılı Bir Şekilde {member.mention} Kullanıcısından {miktar} Bakiye Silinmiştir Yeni Bakiyesi {yeni_bakiye} Olmuştur.**"
     )
 
 
@@ -228,22 +256,22 @@ async def bakiyeekle(ctx, member: discord.Member, miktar: int):
 @bot.command()
 async def magaza(ctx):
     embed = discord.Embed(
-        title="🛒 Balıkçılık Mağazası", color=discord.Color.green()
+        title="**🛒 Balıkçılık Mağazası**", color=discord.Color.green()
     )
     embed.add_field(
-        name="🎣 Süper Olta",
-        value="Fiyat: **100000** Bakiye\nSatın Al: `.al super_olta`",
+        name="**🎣 Süper Olta**",
+        value="**Fiyat:** **100000** Bakiye\n**Satın Al:** **`.al super_olta`**",
         inline=False,
     )
     embed.add_field(
-        name="🪱 Altın Yem",
-        value="Fiyat: **5000** Bakiye\nSatın Al: `.al altin_yem`",
+        name="**🪱 Altın Yem**",
+        value="**Fiyat:** **5000** Bakiye\n**Satın Al:** **`.al altin_yem`**",
         inline=False,
     )
     await ctx.send(embed=embed)
 
 
-# Satın Alma Komutu (.al)
+# .al Komutu
 @bot.command()
 async def al(ctx, esya: str):
     user_id = ctx.author.id
@@ -252,106 +280,113 @@ async def al(ctx, esya: str):
 
     if esya in ["super_olta", "süper olta", "superolta"]:
         if bal < 100000:
-            await ctx.send("❌ hata süper olta almak için 100000 bakiyesi gerekir.")
+            await ctx.send(
+                "**❌ | Süper olta satın almak için 100000 bakiyeniz olması gerekmektedir.**"
+            )
             return
         user_balances[user_id] -= 100000
         user_inventories[user_id]["super_olta"] += 1
         await ctx.send(
-            "✅ süper olta başarılı bir şekilde alındı .oltakullan yazarak süper oltayı kullanabilirsin."
+            "**✅ | Süper olta başarılı bir şekilde satın alındı. .oltakullan yazarak kuşanabilirsiniz.**"
         )
 
     elif esya in ["altin_yem", "altın yem", "altinyem"]:
         if bal < 5000:
-            await ctx.send("❌ hata altın yem almak için 5000 bakiye gerekir.")
+            await ctx.send(
+                "**❌ | Altın yem satın almak için 5000 bakiyeniz olması gerekmektedir.**"
+            )
             return
         user_balances[user_id] -= 5000
         user_inventories[user_id]["altin_yem"] += 1
         await ctx.send(
-            "✅ altın yem başarılı bir şekilde alındı .yemkullan yazarak altın yemi kullanabilirsin."
+            "**✅ | Altın yem başarılı bir şekilde satın alındı. .yemkullan yazarak kuşanabilirsiniz.**"
         )
     else:
         await ctx.send(
-            "❌ Geçersiz eşya adı. Kullanım: `.al super_olta` veya `.al altin_yem`"
+            "**❌ | Geçersiz eşya adı. Kullanım: .al super_olta veya .al altin_yem**"
         )
 
 
-# .oltakullan Komutu
+# Ekipman Kullanım Komutları
 @bot.command()
 async def oltakullan(ctx):
     user_id = ctx.author.id
     if user_inventories[user_id]["super_olta"] < 1:
-        await ctx.send("❌ Envanterinizde Süper Olta bulunmuyor.")
+        await ctx.send("**❌ | Envanterinizde Süper Olta bulunmamaktadır.**")
         return
     user_equipped[user_id]["olta"] = "Süper Olta"
-    await ctx.send("✅ Süper Olta başarıyla takıldı!")
+    await ctx.send("**✅ | Süper Olta başarıyla takıldı.**")
 
 
-# .oltaçıkart Komutu
 @bot.command()
 async def oltaçıkart(ctx):
     user_id = ctx.author.id
     if not user_equipped[user_id]["olta"]:
-        await ctx.send("❌ Zaten takılı bir oltanız yok.")
+        await ctx.send("**❌ | Takılı bir oltanız bulunmamaktadır.**")
         return
     user_equipped[user_id]["olta"] = None
-    await ctx.send("✅ Olta başarıyla çıkartıldı.")
+    await ctx.send("**✅ | Olta başarıyla çıkartıldı.**")
 
 
-# .yemkullan Komutu
 @bot.command()
 async def yemkullan(ctx):
     user_id = ctx.author.id
     if user_inventories[user_id]["altin_yem"] < 1:
-        await ctx.send("❌ Envanterinizde Altın Yem bulunmuyor.")
+        await ctx.send("**❌ | Envanterinizde Altın Yem bulunmamaktadır.**")
         return
     user_equipped[user_id]["yem"] = "Altın Yem"
-    await ctx.send("✅ Altın Yem başarıyla takıldı!")
+    await ctx.send("**✅ | Altın Yem başarıyla takıldı.**")
 
 
-# .yemçıkart Komutu
 @bot.command()
 async def yemçıkart(ctx):
     user_id = ctx.author.id
     if not user_equipped[user_id]["yem"]:
-        await ctx.send("❌ Zaten takılı bir yeminiz yok.")
+        await ctx.send("**❌ | Takılı bir yeminiz bulunmamaktadır.**")
         return
     user_equipped[user_id]["yem"] = None
-    await ctx.send("✅ Yem başarıyla çıkartıldı.")
+    await ctx.send("**✅ | Yem başarıyla çıkartıldı.**")
 
 
-# .yardım Komutu
+# .yardım Komutu (Kategorize Edilmiş Embed)
 @bot.command()
 async def yardım(ctx):
     embed = discord.Embed(
-        title="📜 Bot Komut Menüsü",
-        description="Aşağıda bot içerisinde kullanabileceğiniz tüm komutlar yer almaktadır:",
+        title="**📜 Bot Komut Sistemleri**",
+        description="**Aşağıda kategorilere ayrılmış tüm bot komutları listelenmektedir:**",
         color=discord.Color.purple(),
     )
+
     embed.add_field(
-        name="🎣 Balıkçılık Komutları",
-        value="`.fish` - 5 saniye bekleyip şansa göre balık tutar (10sn cooldown).\n"
-              "`.sat` - Envanterdeki tüm balıkları satıp bakiyeye çevirir.\n"
-              "`.envanter` - Tuttuğunuz balıkları ve eşyalarınızı gösterir.",
+        name="**🎣 Balıkçılık Komutları**",
+        value="• **`.fish`** : **Balık tutma işlemini başlatır.**\n"
+              "• **`.sat`** : **Envanterdeki tüm balıkları satarak bakiyeye dönüştürür.**\n"
+              "• **`.envanter`** : **Mevcut balık ve eşyalarınızı görüntüler.**",
         inline=False,
     )
+
     embed.add_field(
-        name="💰 Bakiye ve Mağaza Komutları",
-        value="`.bakiye` - Bakiyenizi görüntüler.\n"
-              "`.magaza` - Satın alınabilir eşyaları listeler.\n"
-              "`.al <eşya_adı>` - Mağazadan eşya satın alır.",
+        name="**💰 Ekonomi Komutları**",
+        value="• **`.bakiye`** : **Mevcut bakiyenizi kontrol eder.**\n"
+              "• **`.magaza`** : **Satın alınabilir eşyaları görüntüler.**\n"
+              "• **`.al`** : **Mağazadan eşya satın almayı sağlar.**",
         inline=False,
     )
+
     embed.add_field(
-        name="⚙️ Ekipman Komutları",
-        value="`.oltakullan` / `.oltaçıkart` - Süper oltayı takar veya çıkarır.\n"
-              "`.yemkullan` / `.yemçıkart` - Altın yemi takar veya çıkarır.",
+        name="**⚙️ Ekipman Komutları**",
+        value="• **`.oltakullan`** / **`.oltaçıkart`** : **Süper oltayı kuşanamaya / çıkarmaya yarar.**\n"
+              "• **`.yemkullan`** / **`.yemçıkart`** : **Altın yemi kuşanmaya / çıkarmaya yarar.**",
         inline=False,
     )
+
     embed.add_field(
-        name="👑 Yönetici Komutları",
-        value="`.bakiyeekle @kullanıcı <miktar>` - Kullanıcıya bakiye ekler (Sadece yetkili rol).",
+        name="**👑 Yönetici Komutları**",
+        value="• **`.bakiyeekle`** : **Belirtilen kullanıcıya bakiye ekler.**\n"
+              "• **`.bakiyesil`** : **Belirtilen kullanıcıdan bakiye siler.**",
         inline=False,
     )
+
     await ctx.send(embed=embed)
 
 
