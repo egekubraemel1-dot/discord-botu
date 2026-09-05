@@ -18,24 +18,76 @@ user_balances = defaultdict(int)
 user_inventories = defaultdict(lambda: defaultdict(int))
 user_equipped = defaultdict(lambda: {"olta": None, "yem": None})
 
-# Balık Tanımlamaları: (Ad, Ağırlık/Şans, Fiyat)
-FISH_DATA = [
-    ("hamsi", 90.0, 10),
-    ("çupra", 25.0, 25),
-    ("palamut", 10.0, 100),
-    ("deniz atı", 7.0, 250),
-    ("balon balığı", 5.0, 1000),
-    ("kılıç balığı", 3.0, 2500),
-    ("köpek balığı", 2.5, 5000),
-    ("balina", 1.0, 10000),
-    ("megaladon", 0.5, 50000),
+# Balık Fiyatları
+FISH_PRICES = {
+    "hamsi": 10,
+    "çupra": 25,
+    "palamut": 100,
+    "deniz atı": 250,
+    "balon balığı": 1000,
+    "kılıç balığı": 2500,
+    "köpek balığı": 5000,
+    "balina": 10000,
+    "megaladon": 50000,
+}
+
+# Şans Oranları (Balık Adı, Oran)
+# 1. Varsayılan (Normal)
+BASE_RATES = [
+    ("hamsi", 90.0),
+    ("çupra", 25.0),
+    ("palamut", 10.0),
+    ("deniz atı", 7.0),
+    ("balon balığı", 5.0),
+    ("kılıç balığı", 3.0),
+    ("köpek balığı", 2.5),
+    ("balina", 1.0),
+    ("megaladon", 0.5),
+]
+
+# 2. Altın Yem Takılıyken
+YEM_RATES = [
+    ("hamsi", 89.0),
+    ("çupra", 26.0),
+    ("palamut", 11.0),
+    ("deniz atı", 7.5),
+    ("balon balığı", 5.5),
+    ("kılıç balığı", 3.25),
+    ("köpek balığı", 2.7),
+    ("balina", 1.05),
+    ("megaladon", 0.51),
+]
+
+# 3. Süper Olta Takılıyken
+OLTA_RATES = [
+    ("hamsi", 85.0),
+    ("çupra", 30.0),
+    ("palamut", 12.0),
+    ("deniz atı", 8.5),
+    ("balon balığı", 6.0),
+    ("kılıç balığı", 4.0),
+    ("köpek balığı", 3.0),
+    ("balina", 1.25),
+    ("megaladon", 0.6),
 ]
 
 
-def catch_fish():
-    weights = [f[1] for f in FISH_DATA]
-    selected = random.choices(FISH_DATA, weights=weights, k=1)[0]
-    return selected[0], selected[2]
+def catch_fish(user_id):
+    equipped = user_equipped[user_id]
+
+    # Ekipmana göre şans tablosunu belirleme
+    if equipped["olta"] == "Süper Olta":
+        active_rates = OLTA_RATES
+    elif equipped["yem"] == "Altın Yem":
+        active_rates = YEM_RATES
+    else:
+        active_rates = BASE_RATES
+
+    names = [f[0] for f in active_rates]
+    weights = [f[1] for f in active_rates]
+
+    selected_fish = random.choices(names, weights=weights, k=1)[0]
+    return selected_fish
 
 
 @bot.event
@@ -62,13 +114,43 @@ async def fish(ctx):
     await ctx.send("🎣 balık tutuluyor...")
     await asyncio.sleep(5)
 
-    fish_name, price = catch_fish()
     user_id = ctx.author.id
+    fish_name = catch_fish(user_id)
 
+    # Sadece envantere eklenir, bakiye eklenmez
     user_inventories[user_id][fish_name] += 1
-    user_balances[user_id] += price
 
     await ctx.send(f"🪣 kovanıza {fish_name} eklendi.")
+
+
+# .sat Komutu (Envanterdeki tüm balıkları satma)
+@bot.command()
+async def sat(ctx):
+    user_id = ctx.author.id
+    inv = user_inventories[user_id]
+
+    total_earnings = 0
+    sold_count = 0
+
+    for fish_name, price in FISH_PRICES.items():
+        count = inv[fish_name]
+        if count > 0:
+            total_earnings += count * price
+            sold_count += count
+            inv[fish_name] = 0  # Envanterdeki balığı sıfırla
+
+    if sold_count == 0:
+        await ctx.send("❌ Envanterinizde satılacak balık bulunmuyor!")
+        return
+
+    user_balances[user_id] += total_earnings
+
+    embed = discord.Embed(
+        title="🐟 Balık Satışı Yapıldı!",
+        description=f"Toplam **{sold_count}** adet balık satıldı.\nKazanılan Bakiye: **+{total_earnings}** 💰\nMevcut Bakiye: **{user_balances[user_id]}** 💰",
+        color=discord.Color.green(),
+    )
+    await ctx.send(embed=embed)
 
 
 # .bakiye Komutu
@@ -98,7 +180,7 @@ async def envanter(ctx):
     )
 
     fish_lines = []
-    for name, _, _ in FISH_DATA:
+    for name in FISH_PRICES.keys():
         count = inv[name]
         fish_lines.append(f"• **{name}**: {count}")
 
@@ -248,6 +330,7 @@ async def yardım(ctx):
     embed.add_field(
         name="🎣 Balıkçılık Komutları",
         value="`.fish` - 5 saniye bekleyip şansa göre balık tutar (10sn cooldown).\n"
+              "`.sat` - Envanterdeki tüm balıkları satıp bakiyeye çevirir.\n"
               "`.envanter` - Tuttuğunuz balıkları ve eşyalarınızı gösterir.",
         inline=False,
     )
