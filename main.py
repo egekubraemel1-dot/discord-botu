@@ -9,7 +9,8 @@ from discord.ext import commands
 intents = discord.Intents.default()
 intents.message_content = True
 
-bot = commands.Bot(command_prefix=".", intents=intents)
+# Varsayılan help komutunu çakışma olmaması için kaldırıyoruz
+bot = commands.Bot(command_prefix=".", intents=intents, help_command=None)
 
 # SABİT TANIMLAMALAR
 OWNER_ROLE_ID = 1525636834233680001
