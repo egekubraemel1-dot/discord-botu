@@ -1,39 +1,40 @@
+import os
 import discord
 from discord.ext import commands
-from flask import Flask
-from threading import Thread
-import os
 
-# Web sunucusu (7/24 aktif kalması için)
-app = Flask('')
-
-@app.route('/')
-def home():
-    return "Bot 7/24 Aktif!"
-
-def run():
-    app.run(host='0.0.0.0', port=8080)
-
-def keep_alive():
-    t = Thread(target=run)
-    t.start()
-
-# Discord Bot Ayarları
+# Bot izinlerini ayarlıyoruz
 intents = discord.Intents.default()
 intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+
 @bot.event
 async def on_ready():
-    print(f"{bot.user} başarıyla giriş yaptı!")
+    print(f"{bot.user} olarak giriş yapıldı!")
 
+
+# Komut örneği: !ping
 @bot.command()
 async def ping(ctx):
     await ctx.send("Pong! 🏓")
 
-# Web sunucusunu başlat
-keep_alive()
 
-# Bot Token'ı Render'dan alınacak
-bot.run(os.getenv("BOT_TOKEN"))
+# Mesaj dinleyici: SA yanıtı
+@bot.event
+async def on_message(message):
+    # Botun kendi mesajlarına yanıt vermesini engeller
+    if message.author == bot.user:
+        return
+
+    # "sa", "Sa" veya "SA" yazıldığında yanıt verir
+    if message.content.lower() == "sa":
+        await message.channel.send("Aleyküm Selam Hoşgeldin.")
+
+    # !ping gibi diğer komutların aksamadan çalışmasını sağlar
+    await bot.process_commands(message)
+
+
+# Token'ı çevre değişkeninden çeker
+token = os.getenv("BOT_TOKEN")
+bot.run(token)
