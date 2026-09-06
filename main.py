@@ -177,8 +177,8 @@ async def on_command_error(ctx, error):
     else:
         raise error
 
-# a!fish Komutu
-@bot.command(aliases=["fısh", "tut", "balıktut", "balıkayık"])
+# 1) Balık Tutma Komutu (a!fish, a!tut, a!balıktut)
+@bot.command(aliases=["tut", "balıktut", "balıkayık"])
 @commands.cooldown(1, 10, commands.BucketType.user)
 async def fish(ctx):
     msg = await ctx.send("** 🎣 | Balık Tutuluyor... **")
@@ -196,15 +196,15 @@ async def fish(ctx):
 
     await msg.edit(content=f"** 🪣 | Kovanıza {emoji} {fish_name.title()} Eklendi. **")
 
-# a!sat Komutu
+# 2) Satış Komutu (a!sat, a!satış, a!satis)
 @bot.command(aliases=["satış", "satis"])
 async def sat(ctx):
     view = SellCategoryView(ctx.author.id)
     await ctx.send(f"** 🛒 | {ctx.author.mention}, Satmak İstediğin Balık Kategorisini Seç: **", view=view)
 
-# a!balık Komutu
-@bot.command(aliases=["balıklar", "balik", "baliklar", "baliklist", "fishlist"])
-async def balık(ctx):
+# 3) Balık Listesi Komutu (a!balık, a!baliklar, a!fishlist)
+@bot.command(name="balık", aliases=["baliklar", "fishlist"])
+async def balık_listesi(ctx):
     fish_list = "\n".join([f"** {data['emoji']} {name.title()} **" for name, data in FISH_DATA.items()])
 
     embed = discord.Embed(
@@ -214,7 +214,7 @@ async def balık(ctx):
     )
     await ctx.send(embed=embed)
 
-# a!fiyat Komutu
+# 4) Fiyat Öğrenme Komutu
 @bot.command(aliases=["fıyat", "fiyati", "fiyatı", "price", "fiyatlar", "fıyatlar"])
 async def fiyat(ctx, *, balık_adı: str = None):
     if not balık_adı:
@@ -244,7 +244,7 @@ async def fiyat(ctx, *, balık_adı: str = None):
             "** ❌ | Belirtilen İsimde Bir Balık Bulunamadı. `a!balık` Yazarak Tüm Balıkları Görebilirsiniz. **"
         )
 
-# a!bakiye Komutu (.bakiye @kullanıcı veya a!bakiye @kullanıcı)
+# 5) Bakiye Komutu
 @bot.command(aliases=["bakıye", "para", "balance", "cüzdan", "cuzdan"])
 async def bakiye(ctx, member: discord.Member = None):
     target = member or ctx.author
@@ -257,7 +257,7 @@ async def bakiye(ctx, member: discord.Member = None):
     )
     await ctx.send(embed=embed)
 
-# a!envanter Komutu
+# 6) Envanter Komutu
 @bot.command(aliases=["inv", "inventory", "çanta", "canta"])
 async def envanter(ctx):
     user_id = ctx.author.id
@@ -298,7 +298,7 @@ async def envanter(ctx):
 
     await ctx.send(embed=embed)
 
-# a!bakiyeekle Komutu
+# 7) Admin Bakiye Ekle Komutu
 @bot.command(aliases=["bakıyeekle", "paraekle"])
 async def bakiyeekle(ctx, member: discord.Member, miktar: int):
     has_role = any(role.id == OWNER_ROLE_ID for role in ctx.author.roles)
@@ -314,7 +314,7 @@ async def bakiyeekle(ctx, member: discord.Member, miktar: int):
         f"** ✅ | Başarılı Bir Şekilde {member.mention} Kullanıcısına {miktar} Bakiye Eklendi. Yeni Bakiyesi: {yeni_bakiye} **"
     )
 
-# a!bakiyesil Komutu
+# 8) Admin Bakiye Sil Komutu
 @bot.command(aliases=["bakıyesil", "parasil"])
 async def bakiyesil(ctx, member: discord.Member, miktar: int):
     has_role = any(role.id == OWNER_ROLE_ID for role in ctx.author.roles)
@@ -330,7 +330,7 @@ async def bakiyesil(ctx, member: discord.Member, miktar: int):
         f"** ✅ | Başarılı Bir Şekilde {member.mention} Kullanıcısından {miktar} Bakiye Silinmiştir. Yeni Bakiyesi: {yeni_bakiye} **"
     )
 
-# a!magaza Komutu
+# 9) Mağaza Komutu
 @bot.command(aliases=["mağaza", "shop", "store"])
 async def magaza(ctx):
     embed = discord.Embed(
@@ -348,7 +348,7 @@ async def magaza(ctx):
     )
     await ctx.send(embed=embed)
 
-# a!al Komutu
+# 10) Satın Al Komutu
 @bot.command(aliases=["buy", "satınal", "satinal"])
 async def al(ctx, *, esya: str):
     user_id = ctx.author.id
@@ -383,7 +383,7 @@ async def al(ctx, *, esya: str):
             "** ❌ | Geçersiz Eşya Adı. Kullanım: `a!al super_olta` Veya `a!al altin_yem` **"
         )
 
-# Ekipman Kullanım Komutları
+# 11) Ekipman Kullanım Komutları
 @bot.command(aliases=["oltakullanım", "oltatak"])
 async def oltakullan(ctx):
     user_id = ctx.author.id
@@ -446,12 +446,12 @@ def get_help_embed():
     )
     return embed
 
-# a!yardım Komutu
+# 12) Yardım Komutu
 @bot.command(aliases=["yardim", "help"])
 async def yardım(ctx):
     await ctx.send(embed=get_help_embed())
 
-# Sadece /yardım Slash Komutu
+# 13) Slash Yardım Komutu
 @bot.tree.command(name="yardım", description="Bot Komut Menüsünü Gösterir.")
 async def slash_yardim(interaction: discord.Interaction):
     await interaction.response.send_message(embed=get_help_embed())
