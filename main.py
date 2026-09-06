@@ -10,14 +10,18 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-bot = commands.Bot(command_prefix=["a!", "a."], intents=intents, help_command=None)
+# Prefix Sadece a! Olarak Ayarlandı
+bot = commands.Bot(command_prefix="a!", intents=intents, help_command=None)
 
+# SABİT TANIMLAMALAR
 OWNER_ROLE_ID = 1525636834233680001
 
+# Veri Depolama (Bellek İçi)
 user_balances = defaultdict(int)
 user_inventories = defaultdict(lambda: defaultdict(int))
 user_equipped = defaultdict(lambda: {"olta": None, "yem": None})
 
+# Balık Verileri (Fiyat, Şans Ve Emojiler)
 FISH_DATA = {
     "hamsi": {"price": 10, "chance": 85.0, "emoji": "🐟"},
     "çupra": {"price": 50, "chance": 20.0, "emoji": "🐠"},
@@ -32,6 +36,8 @@ FISH_DATA = {
 
 def catch_fish(user_id):
     equipped = user_equipped[user_id]
+    
+    # Ekipman Bonusları
     chance_multiplier = 1.0
     if equipped["olta"] == "Süper Olta":
         chance_multiplier = 1.2
@@ -49,6 +55,7 @@ def catch_fish(user_id):
 
     return random.choice(caught_fish)
 
+# Butonlu Ve Kategorili Satış Arayüzü
 class SellAmountView(discord.ui.View):
     def __init__(self, user_id, fish_name):
         super().__init__(timeout=60)
@@ -65,7 +72,7 @@ class SellAmountView(discord.ui.View):
         inv = user_inventories[self.user_id]
         current_owned = inv[self.fish_name]
 
-        if amount == -1:
+        if amount == -1:  # Hepsini Sat
             amount = current_owned
 
         formatted_fish = self.fish_name.title()
@@ -147,6 +154,7 @@ async def on_ready():
         print(f"** Slash Komutu Senkronizasyon Hatası: {e} **")
     print(f"** {bot.user} Olarak Giriş Yapıldı! **")
 
+# Otomatik Selamlama
 @bot.event
 async def on_message(message):
     if message.author.bot:
@@ -158,6 +166,7 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
+# Cooldown Hata Mesajı
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
@@ -168,7 +177,8 @@ async def on_command_error(ctx, error):
     else:
         raise error
 
-@bot.command(name="fish", aliases=["tut", "balıktut"])
+# 1) Balık Tutma Komutu: a!fish
+@bot.command(name="fish")
 @commands.cooldown(1, 10, commands.BucketType.user)
 async def cmd_fish(ctx):
     msg = await ctx.send("** 🎣 | Balık Tutuluyor... **")
@@ -186,13 +196,15 @@ async def cmd_fish(ctx):
 
     await msg.edit(content=f"** 🪣 | Kovanıza {emoji} {fish_name.title()} Eklendi. **")
 
-@bot.command(name="sat", aliases=["satış", "satis"])
+# 2) Satış Komutu: a!sat
+@bot.command(name="sat")
 async def cmd_sat(ctx):
     view = SellCategoryView(ctx.author.id)
     await ctx.send(f"** 🛒 | {ctx.author.mention}, Satmak İstediğin Balık Kategorisini Seç: **", view=view)
 
-@bot.command(name="baliklistesi", aliases=["fishlist", "balıklar"])
-async def cmd_baliklistesi(ctx):
+# 3) Balık Listesi Komutu: a!balık
+@bot.command(name="balık")
+async def cmd_balik(ctx):
     fish_list = "\n".join([f"** {data['emoji']} {name.title()} **" for name, data in FISH_DATA.items()])
 
     embed = discord.Embed(
@@ -202,7 +214,8 @@ async def cmd_baliklistesi(ctx):
     )
     await ctx.send(embed=embed)
 
-@bot.command(name="fiyat", aliases=["price", "fiyatlar"])
+# 4) Fiyat Öğrenme Komutu: a!fiyat
+@bot.command(name="fiyat")
 async def cmd_fiyat(ctx, *, balık_adı: str = None):
     if not balık_adı:
         embed = discord.Embed(title="** 📊 | Balık Fiyat Listesi **", color=discord.Color.blue())
@@ -228,10 +241,11 @@ async def cmd_fiyat(ctx, *, balık_adı: str = None):
         await ctx.send(embed=embed)
     else:
         await ctx.send(
-            "** ❌ | Belirtilen İsimde Bir Balık Bulunamadı. `a!baliklistesi` Yazarak Tüm Balıkları Görebilirsiniz. **"
+            "** ❌ | Belirtilen İsimde Bir Balık Bulunamadı. `a!balık` Yazarak Tüm Balıkları Görebilirsiniz. **"
         )
 
-@bot.command(name="bakiye", aliases=["para", "balance", "cüzdan"])
+# 5) Bakiye Komutu: a!bakiye
+@bot.command(name="bakiye")
 async def cmd_bakiye(ctx, member: discord.Member = None):
     target = member or ctx.author
     bal = user_balances[target.id]
@@ -243,7 +257,8 @@ async def cmd_bakiye(ctx, member: discord.Member = None):
     )
     await ctx.send(embed=embed)
 
-@bot.command(name="envanter", aliases=["inv", "inventory", "çanta"])
+# 6) Envanter Komutu: a!envanter
+@bot.command(name="envanter")
 async def cmd_envanter(ctx):
     user_id = ctx.author.id
     inv = user_inventories[user_id]
@@ -283,7 +298,8 @@ async def cmd_envanter(ctx):
 
     await ctx.send(embed=embed)
 
-@bot.command(name="bakiyeekle", aliases=["paraekle"])
+# 7) Admin Bakiye Ekle Komutu: a!bakiyeekle
+@bot.command(name="bakiyeekle")
 async def cmd_bakiyeekle(ctx, member: discord.Member, miktar: int):
     has_role = any(role.id == OWNER_ROLE_ID for role in ctx.author.roles)
     if not has_role:
@@ -298,7 +314,8 @@ async def cmd_bakiyeekle(ctx, member: discord.Member, miktar: int):
         f"** ✅ | Başarılı Bir Şekilde {member.mention} Kullanıcısına {miktar} Bakiye Eklendi. Yeni Bakiyesi: {yeni_bakiye} **"
     )
 
-@bot.command(name="bakiyesil", aliases=["parasil"])
+# 8) Admin Bakiye Sil Komutu: a!bakiyesil
+@bot.command(name="bakiyesil")
 async def cmd_bakiyesil(ctx, member: discord.Member, miktar: int):
     has_role = any(role.id == OWNER_ROLE_ID for role in ctx.author.roles)
     if not has_role:
@@ -313,7 +330,8 @@ async def cmd_bakiyesil(ctx, member: discord.Member, miktar: int):
         f"** ✅ | Başarılı Bir Şekilde {member.mention} Kullanıcısından {miktar} Bakiye Silinmiştir. Yeni Bakiyesi: {yeni_bakiye} **"
     )
 
-@bot.command(name="magaza", aliases=["mağaza", "shop"])
+# 9) Mağaza Komutu: a!magaza
+@bot.command(name="magaza")
 async def cmd_magaza(ctx):
     embed = discord.Embed(
         title="** 🛒 | Balıkçılık Mağazası **", color=discord.Color.green()
@@ -330,7 +348,8 @@ async def cmd_magaza(ctx):
     )
     await ctx.send(embed=embed)
 
-@bot.command(name="al", aliases=["buy", "satınal"])
+# 10) Satın Al Komutu: a!al
+@bot.command(name="al")
 async def cmd_al(ctx, *, esya: str):
     user_id = ctx.author.id
     bal = user_balances[user_id]
@@ -364,7 +383,8 @@ async def cmd_al(ctx, *, esya: str):
             "** ❌ | Geçersiz Eşya Adı. Kullanım: `a!al super_olta` Veya `a!al altin_yem` **"
         )
 
-@bot.command(name="oltakullan", aliases=["oltatak"])
+# 11) Ekipman Kullanım Komutları: a!oltakullan, a!oltaçıkart, a!yemkullan, a!yemçıkart
+@bot.command(name="oltakullan")
 async def cmd_oltakullan(ctx):
     user_id = ctx.author.id
     if user_inventories[user_id]["super_olta"] < 1:
@@ -373,7 +393,7 @@ async def cmd_oltakullan(ctx):
     user_equipped[user_id]["olta"] = "Süper Olta"
     await ctx.send("** ✅ | Süper Olta Başarıyla Takıldı. **")
 
-@bot.command(name="oltaçıkart", aliases=["oltacikar"])
+@bot.command(name="oltaçıkart")
 async def cmd_oltacikart(ctx):
     user_id = ctx.author.id
     if not user_equipped[user_id]["olta"]:
@@ -382,7 +402,7 @@ async def cmd_oltacikart(ctx):
     user_equipped[user_id]["olta"] = None
     await ctx.send("** ✅ | Olta Başarıyla Çıkartıldı. **")
 
-@bot.command(name="yemkullan", aliases=["yemtak"])
+@bot.command(name="yemkullan")
 async def cmd_yemkullan(ctx):
     user_id = ctx.author.id
     if user_inventories[user_id]["altin_yem"] < 1:
@@ -391,7 +411,7 @@ async def cmd_yemkullan(ctx):
     user_equipped[user_id]["yem"] = "Altın Yem"
     await ctx.send("** ✅ | Altın Yem Başarıyla Takıldı. **")
 
-@bot.command(name="yemçıkart", aliases=["yemcikar"])
+@bot.command(name="yemçıkart")
 async def cmd_yemcikart(ctx):
     user_id = ctx.author.id
     if not user_equipped[user_id]["yem"]:
@@ -400,12 +420,13 @@ async def cmd_yemcikart(ctx):
     user_equipped[user_id]["yem"] = None
     await ctx.send("** ✅ | Yem Başarıyla Çıkartıldı. **")
 
+# Kompakt Yardım Embed Oluşturucu
 def get_help_embed():
     embed = discord.Embed(color=discord.Color.blue())
 
     embed.add_field(
         name="🎣 Balıkçılık",
-        value="`a!fish` `a!sat` `a!envanter` `a!baliklistesi` `a!fiyat`",
+        value="`a!fish` `a!sat` `a!envanter` `a!balık` `a!fiyat`",
         inline=False,
     )
     embed.add_field(
@@ -425,10 +446,12 @@ def get_help_embed():
     )
     return embed
 
-@bot.command(name="yardım", aliases=["yardim", "help"])
+# 12) Yardım Komutu: a!yardım
+@bot.command(name="yardım")
 async def cmd_yardim(ctx):
     await ctx.send(embed=get_help_embed())
 
+# 13) Slash Yardım Komutu: /yardım
 @bot.tree.command(name="yardım", description="Bot Komut Menüsünü Gösterir.")
 async def slash_yardim(interaction: discord.Interaction):
     await interaction.response.send_message(embed=get_help_embed())
