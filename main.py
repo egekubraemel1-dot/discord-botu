@@ -178,7 +178,7 @@ async def on_command_error(ctx, error):
         raise error
 
 # a!fish Komutu
-@bot.command(aliases=["fısh", "baliklar", "tut", "balıktut", "balıkayık", "balık", "balik"])
+@bot.command(aliases=["fısh", "tut", "balıktut", "balıkayık"])
 @commands.cooldown(1, 10, commands.BucketType.user)
 async def fish(ctx):
     msg = await ctx.send("** 🎣 | Balık Tutuluyor... **")
@@ -203,7 +203,7 @@ async def sat(ctx):
     await ctx.send(f"** 🛒 | {ctx.author.mention}, Satmak İstediğin Balık Kategorisini Seç: **", view=view)
 
 # a!balık Komutu
-@bot.command(aliases=["balıklar", "baliklist", "fishlist"])
+@bot.command(aliases=["balıklar", "balik", "baliklar", "baliklist", "fishlist"])
 async def balık(ctx):
     fish_list = "\n".join([f"** {data['emoji']} {name.title()} **" for name, data in FISH_DATA.items()])
 
