@@ -154,7 +154,7 @@ async def on_ready():
         print(f"** Slash Komutu Senkronizasyon Hatası: {e} **")
     print(f"** {bot.user} Olarak Giriş Yapıldı! **")
 
-# Otomatik Selamlama
+# Otomatik Selamlama (Anında Yanıt)
 @bot.event
 async def on_message(message):
     if message.author.bot:
@@ -162,7 +162,7 @@ async def on_message(message):
 
     content = message.content.strip().lower()
     if content in ["sa", "s.a", "s.a.", "selam", "selamunaleykum", "selamün aleyküm"]:
-        await message.channel.send(f"** 🖐️ | Aleykümselam {message.author.mention}, Hoş Geldin! **")
+        await message.channel.send(f"Aleyküm Selam Hoşgeldin {message.author.mention}")
 
     await bot.process_commands(message)
 
@@ -202,9 +202,9 @@ async def cmd_sat(ctx):
     view = SellCategoryView(ctx.author.id)
     await ctx.send(f"** 🛒 | {ctx.author.mention}, Satmak İstediğin Balık Kategorisini Seç: **", view=view)
 
-# 3) Balık Listesi Komutu: a!balık
-@bot.command(name="balık")
-async def cmd_balik(ctx):
+# 3) Balık Listesi Komutu: a!baliklistesi
+@bot.command(name="baliklistesi")
+async def cmd_baliklistesi(ctx):
     fish_list = "\n".join([f"** {data['emoji']} {name.title()} **" for name, data in FISH_DATA.items()])
 
     embed = discord.Embed(
@@ -241,7 +241,7 @@ async def cmd_fiyat(ctx, *, balık_adı: str = None):
         await ctx.send(embed=embed)
     else:
         await ctx.send(
-            "** ❌ | Belirtilen İsimde Bir Balık Bulunamadı. `a!balık` Yazarak Tüm Balıkları Görebilirsiniz. **"
+            "** ❌ | Belirtilen İsimde Bir Balık Bulunamadı. `a!baliklistesi` Yazarak Tüm Balıkları Görebilirsiniz. **"
         )
 
 # 5) Bakiye Komutu: a!bakiye
@@ -426,7 +426,7 @@ def get_help_embed():
 
     embed.add_field(
         name="🎣 Balıkçılık",
-        value="`a!fish` `a!sat` `a!envanter` `a!balık` `a!fiyat`",
+        value="`a!fish` `a!sat` `a!envanter` `a!baliklistesi` `a!fiyat`",
         inline=False,
     )
     embed.add_field(
