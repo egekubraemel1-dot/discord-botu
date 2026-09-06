@@ -80,7 +80,7 @@ class SellAmountView(discord.ui.View):
         if current_owned < amount or amount <= 0:
             needed = amount - current_owned
             await interaction.response.send_message(
-                f"** ❌ | Hata {amount} Satmak İçin {needed} Daha {formatted_fish} Gereklidir. **",
+                f"** ❌ | {amount} Adet {formatted_fish} Satmak İçin {needed} Tane Daha Gereklidir. **",
                 ephemeral=True
             )
             return
@@ -93,7 +93,7 @@ class SellAmountView(discord.ui.View):
         new_bal = user_balances[self.user_id]
 
         await interaction.response.send_message(
-            f"** ✅ | Başarılı Bir Şekilde {amount} Tane {formatted_fish} Satıldı. Yeni Bakiyen {new_bal} Olmuştur. **"
+            f"** ✅ | {amount} Adet {formatted_fish} Satıldı! Yeni Bakiyen: {new_bal} Bakiye. **"
         )
         self.stop()
 
@@ -134,7 +134,7 @@ class FishCategorySelect(discord.ui.Select):
         selected_fish = self.values[0]
         view = SellAmountView(self.user_id, selected_fish)
         await interaction.response.send_message(
-            f"** 🎣 | {selected_fish.title()} İçin Kaç Tane Satmak İstediğini Seç: **",
+            f"** 🎣 | {selected_fish.title()} İçin Miktar Seçiniz: **",
             view=view,
             ephemeral=True
         )
@@ -149,10 +149,10 @@ async def on_ready():
     await bot.change_presence(activity=discord.Game(name=".gg/apexis"))
     try:
         synced = await bot.tree.sync()
-        print(f"** {len(synced)} Adet Slash Komutu Senkronize Edildi. **")
+        print(f"** {len(synced)} Adet Komut Yüklendi. **")
     except Exception as e:
-        print(f"** Slash Komutu Senkronizasyon Hatası: {e} **")
-    print(f"** {bot.user} Olarak Giriş Yapıldı! **")
+        print(f"** Komut Yükleme Hatası: {e} **")
+    print(f"** {bot.user} Başarıyla Aktif Oldu! **")
 
 # Otomatik Selamlama (Anında Yanıt)
 @bot.event
@@ -162,17 +162,17 @@ async def on_message(message):
 
     content = message.content.strip().lower()
     if content in ["sa", "s.a", "s.a.", "selam", "selamunaleykum", "selamün aleyküm"]:
-        await message.channel.send(f"Aleyküm Selam Hoşgeldin {message.author.mention}")
+        await message.channel.send(f"** Aleyküm Selam Hoşgeldin {message.author.mention} **")
 
     await bot.process_commands(message)
 
-# Cooldown Hata Mesajı
+# Bekleme Süresi Hata Mesajı
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
         seconds = round(error.retry_after)
         await ctx.send(
-            f"** ❌ | Bu Komutu Tekrar Kullanabilmek İçin {seconds} Saniye Beklemeniz Gerekmektedir. **"
+            f"** ❌ | Bu Komut İçin {seconds} Saniye Beklemen Gerekiyor. **"
         )
     else:
         raise error
@@ -181,26 +181,26 @@ async def on_command_error(ctx, error):
 @bot.command(name="fish")
 @commands.cooldown(1, 10, commands.BucketType.user)
 async def cmd_fish(ctx):
-    msg = await ctx.send("** 🎣 | Balık Tutuluyor... **")
+    msg = await ctx.send("** 🎣 | Oltanı Denize Attın, Bekleniyor... **")
     await asyncio.sleep(3)
 
     user_id = ctx.author.id
     fish_name = catch_fish(user_id)
 
     if not fish_name:
-        await msg.edit(content=f"** 🎣 | Maalesef {ctx.author.mention}, Olta Boş Çıktı! **")
+        await msg.edit(content=f"** 🎣 | Şansına Küs {ctx.author.mention}, Olta Boş Çıktı! **")
         return
 
     user_inventories[user_id][fish_name] += 1
     emoji = FISH_DATA[fish_name]["emoji"]
 
-    await msg.edit(content=f"** 🪣 | Kovanıza {emoji} {fish_name.title()} Eklendi. **")
+    await msg.edit(content=f"** 🪣 | Tebrikler {ctx.author.mention}! Kovana {emoji} {fish_name.title()} Eklendi. **")
 
 # 2) Satış Komutu: a!sat
 @bot.command(name="sat")
 async def cmd_sat(ctx):
     view = SellCategoryView(ctx.author.id)
-    await ctx.send(f"** 🛒 | {ctx.author.mention}, Satmak İstediğin Balık Kategorisini Seç: **", view=view)
+    await ctx.send(f"** 🛒 | {ctx.author.mention}, Satmak İstediğin Balığı Seç: **", view=view)
 
 # 3) Balık Listesi Komutu: a!baliklistesi
 @bot.command(name="baliklistesi")
@@ -208,7 +208,7 @@ async def cmd_baliklistesi(ctx):
     fish_list = "\n".join([f"** {data['emoji']} {name.title()} **" for name, data in FISH_DATA.items()])
 
     embed = discord.Embed(
-        title="** 🐟 | Balık Listesi **",
+        title="** 🐟 | Denizdeki Tüm Balıklar **",
         description=fish_list,
         color=discord.Color.blue(),
     )
@@ -218,11 +218,11 @@ async def cmd_baliklistesi(ctx):
 @bot.command(name="fiyat")
 async def cmd_fiyat(ctx, *, balık_adı: str = None):
     if not balık_adı:
-        embed = discord.Embed(title="** 📊 | Balık Fiyat Listesi **", color=discord.Color.blue())
+        embed = discord.Embed(title="** 📊 | Balık Piyasası Fiyat Listesi **", color=discord.Color.blue())
         for name, data in FISH_DATA.items():
             embed.add_field(
-                name=f"{data['emoji']} {name.title()}",
-                value=f"** Fiyat: {data['price']} Bakiye **\n** Şans: %{data['chance']} **",
+                name=f"** {data['emoji']} {name.title()} **",
+                value=f"** Fiyat: {data['price']} Bakiye **\n** Çıkma Şansı: %{data['chance']} **",
                 inline=True
             )
         await ctx.send(embed=embed)
@@ -235,13 +235,13 @@ async def cmd_fiyat(ctx, *, balık_adı: str = None):
         formatted_name = normalized_name.title()
 
         embed = discord.Embed(
-            description=f"** {data['emoji']} | {formatted_name} Fiyatı {data['price']} Bakiyedir. (Şans: %{data['chance']}) **",
+            description=f"** {data['emoji']} | {formatted_name} Fiyatı: {data['price']} Bakiye (Şans: %{data['chance']}) **",
             color=discord.Color.green(),
         )
         await ctx.send(embed=embed)
     else:
         await ctx.send(
-            "** ❌ | Belirtilen İsimde Bir Balık Bulunamadı. `a!baliklistesi` Yazarak Tüm Balıkları Görebilirsiniz. **"
+            "** ❌ | Aradığın Balık Bulunamadı! Tüm Balıklar İçin: `a!baliklistesi` **"
         )
 
 # 5) Bakiye Komutu: a!bakiye
@@ -251,8 +251,8 @@ async def cmd_bakiye(ctx, member: discord.Member = None):
     bal = user_balances[target.id]
 
     embed = discord.Embed(
-        title="** 💰 | Bakiye Bilgisi **",
-        description=f"** {target.mention} Kullanıcısının Mevcut Bakiyesi: {bal} Bakiye **",
+        title="** 💰 | Cüzdan Bilgisi **",
+        description=f"** {target.mention} Kullanıcısının Bakiyesi: {bal} Bakiye **",
         color=discord.Color.gold(),
     )
     await ctx.send(embed=embed)
@@ -265,33 +265,33 @@ async def cmd_envanter(ctx):
     equipped = user_equipped[user_id]
 
     embed = discord.Embed(
-        title=f"** 🎒 | {ctx.author.display_name} Envanteri **",
+        title=f"** 🎒 | {ctx.author.display_name} Çantası Ve Ekipmanları **",
         color=discord.Color.blue(),
     )
 
     fish_lines = []
     for name, data in FISH_DATA.items():
         count = inv[name]
-        fish_lines.append(f"• **{data['emoji']} {name.title()}**: **{count}**")
+        fish_lines.append(f"** • {data['emoji']} {name.title()}: {count} Adet **")
 
     embed.add_field(
-        name="** 🐟 | Balıklar **", value="\n".join(fish_lines), inline=False
+        name="** 🐟 | Yakalanan Balıklar **", value="\n".join(fish_lines), inline=False
     )
 
     items_lines = [
-        f"• **🎣 Süper Olta**: **{inv['super_olta']}**",
-        f"• **🪱 Altın Yem**: **{inv['altin_yem']}**",
+        f"** • 🎣 Süper Olta: {inv['super_olta']} Adet **",
+        f"** • 🪱 Altın Yem: {inv['altin_yem']} Adet **",
     ]
     embed.add_field(
-        name="** 🎒 | Eşyalar **", value="\n".join(items_lines), inline=False
+        name="** 🎒 | Satın Alınan Malzemeler **", value="\n".join(items_lines), inline=False
     )
 
     active_lines = [
-        f"• **Aktif Olta**: **{equipped['olta'] or 'Yok'}**",
-        f"• **Aktif Yem**: **{equipped['yem'] or 'Yok'}**",
+        f"** • 🎣 Aktif Olta: {equipped['olta'] or 'Yok'} **",
+        f"** • 🪱 Aktif Yem: {equipped['yem'] or 'Yok'} **",
     ]
     embed.add_field(
-        name="** ⚙️ | Takılı Ekipmanlar **",
+        name="** ⚙️ | Kullanılan Ekipmanlar **",
         value="\n".join(active_lines),
         inline=False,
     )
@@ -304,14 +304,14 @@ async def cmd_bakiyeekle(ctx, member: discord.Member, miktar: int):
     has_role = any(role.id == OWNER_ROLE_ID for role in ctx.author.roles)
     if not has_role:
         await ctx.send(
-            "** ❌ | Bu Komutu Kullanmak İçin Gerekli Yetkiye Sahip Değilsiniz. **"
+            "** ❌ | Bu İşlem İçin Yetkin Bulunmuyor! **"
         )
         return
 
     user_balances[member.id] += miktar
     yeni_bakiye = user_balances[member.id]
     await ctx.send(
-        f"** ✅ | Başarılı Bir Şekilde {member.mention} Kullanıcısına {miktar} Bakiye Eklendi. Yeni Bakiyesi: {yeni_bakiye} **"
+        f"** ✅ | {member.mention} Hesabına {miktar} Bakiye Eklendi! Yeni Bakiye: {yeni_bakiye} **"
     )
 
 # 8) Admin Bakiye Sil Komutu: a!bakiyesil
@@ -320,30 +320,30 @@ async def cmd_bakiyesil(ctx, member: discord.Member, miktar: int):
     has_role = any(role.id == OWNER_ROLE_ID for role in ctx.author.roles)
     if not has_role:
         await ctx.send(
-            "** ❌ | Bu Komutu Kullanmak İçin Gerekli Yetkiye Sahip Değilsiniz. **"
+            "** ❌ | Bu İşlem İçin Yetkin Bulunmuyor! **"
         )
         return
 
     user_balances[member.id] -= miktar
     yeni_bakiye = user_balances[member.id]
     await ctx.send(
-        f"** ✅ | Başarılı Bir Şekilde {member.mention} Kullanıcısından {miktar} Bakiye Silinmiştir. Yeni Bakiyesi: {yeni_bakiye} **"
+        f"** ✅ | {member.mention} Hesabından {miktar} Bakiye Düşüldü! Yeni Bakiye: {yeni_bakiye} **"
     )
 
 # 9) Mağaza Komutu: a!magaza
 @bot.command(name="magaza")
 async def cmd_magaza(ctx):
     embed = discord.Embed(
-        title="** 🛒 | Balıkçılık Mağazası **", color=discord.Color.green()
+        title="** 🛒 | Balıkçılık Ve Malzeme Mağazası **", color=discord.Color.green()
     )
     embed.add_field(
         name="** 🎣 | Süper Olta **",
-        value="** Fiyat: ** **100000** Bakiye\n** Satın Al: ** **`a!al super_olta`**",
+        value="** Fiyat: 100000 Bakiye **\n** Satın Alma Komutu: `a!al super_olta` **",
         inline=False,
     )
     embed.add_field(
         name="** 🪱 | Altın Yem **",
-        value="** Fiyat: ** **5000** Bakiye\n** Satın Al: ** **`a!al altin_yem`**",
+        value="** Fiyat: 5000 Bakiye **\n** Satın Alma Komutu: `a!al altin_yem` **",
         inline=False,
     )
     await ctx.send(embed=embed)
@@ -358,90 +358,100 @@ async def cmd_al(ctx, *, esya: str):
     if esya in ["super_olta", "süper olta", "superolta"]:
         if bal < 100000:
             await ctx.send(
-                "** ❌ | Süper Olta Satın Almak İçin 100000 Bakiyeniz Olması Gerekmektedir. **"
+                "** ❌ | Süper Olta Alabilmek İçin 100000 Bakiyen Olması Lazım! **"
             )
             return
         user_balances[user_id] -= 100000
         user_inventories[user_id]["super_olta"] += 1
         await ctx.send(
-            "** ✅ | Süper Olta Başarılı Bir Şekilde Satın Alındı. a!oltakullan Yazarak Kuşanabilirsiniz. **"
+            "** ✅ | Süper Olta Satın Alındı! Takmak İçin: `a!oltakullan` **"
         )
 
     elif esya in ["altin_yem", "altın yem", "altinyem"]:
         if bal < 5000:
             await ctx.send(
-                "** ❌ | Altın Yem Satın Almak İçin 5000 Bakiyeniz Olması Gerekmektedir. **"
+                "** ❌ | Altın Yem Alabilmek İçin 5000 Bakiyen Olması Lazım! **"
             )
             return
         user_balances[user_id] -= 5000
         user_inventories[user_id]["altin_yem"] += 1
         await ctx.send(
-            "** ✅ | Altın Yem Başarılı Bir Şekilde Satın Alındı. a!yemkullan Yazarak Kuşanabilirsiniz. **"
+            "** ✅ | Altın Yem Satın Alındı! Takmak İçin: `a!yemkullan` **"
         )
     else:
         await ctx.send(
-            "** ❌ | Geçersiz Eşya Adı. Kullanım: `a!al super_olta` Veya `a!al altin_yem` **"
+            "** ❌ | Geçersiz Malzeme! Örnek Kullanım: `a!al super_olta` veya `a!al altin_yem` **"
         )
 
-# 11) Ekipman Kullanım Komutları: a!oltakullan, a!oltaçıkart, a!yemkullan, a!yemçıkart
+# 11) Ekipman Kullanım Komutları
 @bot.command(name="oltakullan")
 async def cmd_oltakullan(ctx):
     user_id = ctx.author.id
     if user_inventories[user_id]["super_olta"] < 1:
-        await ctx.send("** ❌ | Envanterinizde Süper Olta Bulunmamaktadır. **")
+        await ctx.send("** ❌ | Çantanda Süper Olta Yok! `a!magaza` Üzerinden Alabilirsin. **")
         return
     user_equipped[user_id]["olta"] = "Süper Olta"
-    await ctx.send("** ✅ | Süper Olta Başarıyla Takıldı. **")
+    await ctx.send("** ✅ | Süper Olta Başarıyla Elinede Takıldı! **")
 
 @bot.command(name="oltaçıkart")
 async def cmd_oltacikart(ctx):
     user_id = ctx.author.id
     if not user_equipped[user_id]["olta"]:
-        await ctx.send("** ❌ | Takılı Bir Oltanız Bulunmamaktadır. **")
+        await ctx.send("** ❌ | Elinde Takılı Bir Olta Yok! **")
         return
     user_equipped[user_id]["olta"] = None
-    await ctx.send("** ✅ | Olta Başarıyla Çıkartıldı. **")
+    await ctx.send("** ✅ | Olta Çıkarıldı! **")
 
 @bot.command(name="yemkullan")
 async def cmd_yemkullan(ctx):
     user_id = ctx.author.id
     if user_inventories[user_id]["altin_yem"] < 1:
-        await ctx.send("** ❌ | Envanterinizde Altın Yem Bulunmamaktadır. **")
+        await ctx.send("** ❌ | Çantanda Altın Yem Yok! `a!magaza` Üzerinden Alabilirsin. **")
         return
     user_equipped[user_id]["yem"] = "Altın Yem"
-    await ctx.send("** ✅ | Altın Yem Başarıyla Takıldı. **")
+    await ctx.send("** ✅ | Altın Yem Başarıyla Oltana Takıldı! **")
 
 @bot.command(name="yemçıkart")
 async def cmd_yemcikart(ctx):
     user_id = ctx.author.id
     if not user_equipped[user_id]["yem"]:
-        await ctx.send("** ❌ | Takılı Bir Yeminiz Bulunmamaktadır. **")
+        await ctx.send("** ❌ | Oltana Takılı Bir Yem Yok! **")
         return
     user_equipped[user_id]["yem"] = None
-    await ctx.send("** ✅ | Yem Başarıyla Çıkartıldı. **")
+    await ctx.send("** ✅ | Yem Çıkarıldı! **")
 
 # Kompakt Yardım Embed Oluşturucu
 def get_help_embed():
-    embed = discord.Embed(color=discord.Color.blue())
+    embed = discord.Embed(
+        title="** 📜 | Bot Komut Menüsü VE Rehberi **",
+        color=discord.Color.blue()
+    )
 
     embed.add_field(
-        name="🎣 Balıkçılık",
-        value="`a!fish` `a!sat` `a!envanter` `a!baliklistesi` `a!fiyat`",
+        name="** 🎣 Balıkçılık Komutları **",
+        value="** `a!fish` `a!sat` `a!envanter` `a!baliklistesi` `a!fiyat` **",
         inline=False,
     )
     embed.add_field(
-        name="💰 Ekonomi",
-        value="`a!bakiye` `a!magaza` `a!al`",
+        name="** 💰 Ekonomi Komutları **",
+        value="** `a!bakiye` `a!magaza` `a!al` **",
         inline=False,
     )
     embed.add_field(
-        name="⚙️ Ekipman",
-        value="`a!oltakullan` `a!oltaçıkart` `a!yemkullan` `a!yemçıkart`",
+        name="** ⚙️ Ekipman Komutları **",
+        value="** `a!oltakullan` `a!oltaçıkart` `a!yemkullan` `a!yemçıkart` **",
         inline=False,
     )
     embed.add_field(
-        name="👑 Yönetici",
-        value="`a!bakiyeekle` `a!bakiyesil`",
+        name="** 🛒 Olta Ve Yem Nasıl Alınır? **",
+        value="** 1. `a!magaza` Yazarak Mağazayı İnceleyin. **\n"
+              "** 2. `a!al super_olta` Veya `a!al altin_yem` Yazıp Satın Alın. **\n"
+              "** 3. `a!oltakullan` Veya `a!yemkullan` Yazarak Ekipmanları Takın. **",
+        inline=False,
+    )
+    embed.add_field(
+        name="** 👑 Yönetici Komutları **",
+        value="** `a!bakiyeekle` `a!bakiyesil` **",
         inline=False,
     )
     return embed
