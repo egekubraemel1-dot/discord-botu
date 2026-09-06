@@ -278,14 +278,6 @@ async def cmd_envanter(ctx):
         name="** 🐟 | Yakalanan Balıklar **", value="\n".join(fish_lines), inline=False
     )
 
-    items_lines = [
-        f"** • 🎣 Süper Olta: {inv['super_olta']} Adet **",
-        f"** • 🪱 Altın Yem: {inv['altin_yem']} Adet **",
-    ]
-    embed.add_field(
-        name="** 🎒 | Satın Alınan Malzemeler **", value="\n".join(items_lines), inline=False
-    )
-
     active_lines = [
         f"** • 🎣 Aktif Olta: {equipped['olta'] or 'Yok'} **",
         f"** • 🪱 Aktif Yem: {equipped['yem'] or 'Yok'} **",
@@ -420,38 +412,28 @@ async def cmd_yemcikart(ctx):
     user_equipped[user_id]["yem"] = None
     await ctx.send("** ✅ | Yem Çıkarıldı! **")
 
-# Kompakt Yardım Embed Oluşturucu
+# Kompakt Yardım Embed Oluşturucu (2. Fotoğraftaki Gibi)
 def get_help_embed():
-    embed = discord.Embed(
-        title="** 📜 | Bot Komut Menüsü VE Rehberi **",
-        color=discord.Color.blue()
-    )
+    embed = discord.Embed(color=discord.Color.blue())
 
     embed.add_field(
-        name="** 🎣 Balıkçılık Komutları **",
-        value="** `a!fish` `a!sat` `a!envanter` `a!baliklistesi` `a!fiyat` **",
+        name="🎣 Balıkçılık",
+        value="`a!fish` `a!sat` `a!envanter` `a!baliklistesi` `a!fiyat`",
         inline=False,
     )
     embed.add_field(
-        name="** 💰 Ekonomi Komutları **",
-        value="** `a!bakiye` `a!magaza` `a!al` **",
+        name="💰 Ekonomi",
+        value="`a!bakiye` `a!magaza` `a!al`",
         inline=False,
     )
     embed.add_field(
-        name="** ⚙️ Ekipman Komutları **",
-        value="** `a!oltakullan` `a!oltaçıkart` `a!yemkullan` `a!yemçıkart` **",
+        name="⚙️ Ekipman",
+        value="`a!oltakullan` `a!oltaçıkart` `a!yemkullan` `a!yemçıkart`",
         inline=False,
     )
     embed.add_field(
-        name="** 🛒 Olta Ve Yem Nasıl Alınır? **",
-        value="** 1. `a!magaza` Yazarak Mağazayı İnceleyin. **\n"
-              "** 2. `a!al super_olta` Veya `a!al altin_yem` Yazıp Satın Alın. **\n"
-              "** 3. `a!oltakullan` Veya `a!yemkullan` Yazarak Ekipmanları Takın. **",
-        inline=False,
-    )
-    embed.add_field(
-        name="** 👑 Yönetici Komutları **",
-        value="** `a!bakiyeekle` `a!bakiyesil` **",
+        name="👑 Yönetici",
+        value="`a!bakiyeekle` `a!bakiyesil`",
         inline=False,
     )
     return embed
